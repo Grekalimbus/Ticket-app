@@ -2,7 +2,8 @@
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
-const TicketForm = () => {
+const EditTicketForm = ({ ticket }) => {
+  const EDITMODE = ticket._id === "new" ? false : true;
   const router = useRouter();
   const startingTicketData = {
     title: "",
@@ -13,39 +14,71 @@ const TicketForm = () => {
     category: "Hardware Problem",
   };
 
+  if (EDITMODE) {
+    startingTicketData["title"] = ticket.title;
+    startingTicketData["description"] = ticket.description;
+    startingTicketData["priority"] = ticket.priority;
+    startingTicketData["progress"] = ticket.progress;
+    startingTicketData["status"] = ticket.status;
+    startingTicketData["category"] = ticket.category;
+  }
+
   const [formData, setFormData] = useState(startingTicketData);
 
   const handleChange = (e) => {
-    setFormData((prevState) => ({
-      ...prevState,
-      [e.target.name]: e.target.value,
+    const value = e.target.value;
+    const name = e.target.name;
+
+    setFormData((preState) => ({
+      ...preState,
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("/api/Tickets", {
-      method: "POST",
-      body: JSON.stringify({ formData }),
-      "сontent-type": "application/json",
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to create ticket");
+    if (EDITMODE) {
+      const res = await fetch(`/api/Tickets/${ticket._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify({ formData }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update ticket");
+      }
+    } else {
+      const res = await fetch("/api/Tickets", {
+        method: "POST",
+        body: JSON.stringify({ formData }),
+        "Content-Type": "application/json",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to create ticket");
+      }
     }
+
     router.refresh();
     router.push("/");
   };
 
+  const categories = [
+    "Hardware Problem",
+    "Software Problem",
+    "Application Deveopment",
+    "Project",
+  ];
+
   return (
-    <div className="flex justify-center">
+    <div className=" flex justify-center">
       <form
-        className="flex flex-col gap-3 w-1/2"
-        method="post"
         onSubmit={handleSubmit}
+        method="post"
+        className="flex flex-col gap-3 w-1/2"
       >
-        <h3>Create Your Ticket</h3>
+        <h3>{EDITMODE ? "Update Your Ticket" : "Create New Ticket"}</h3>
         <label>Title</label>
         <input
           id="title"
@@ -55,34 +88,35 @@ const TicketForm = () => {
           required={true}
           value={formData.title}
         />
-        <label>description</label>
+        <label>Description</label>
         <textarea
           id="description"
           name="description"
-          type="text"
           onChange={handleChange}
           required={true}
           value={formData.description}
-          rows={5}
+          rows="5"
         />
+        <label>Category</label>
         <select
           name="category"
-          id="category"
           value={formData.category}
           onChange={handleChange}
         >
-          <option value="Hardware Problem">Hardware Problem</option>
-          <option value="Software Problem">Software Problem</option>
-          <option value="Project Problem">Project Problem</option>
+          {categories?.map((category, _index) => (
+            <option key={_index} value={category}>
+              {category}
+            </option>
+          ))}
         </select>
-        <label>priority</label>
+
+        <label>Priority</label>
         <div>
           <input
             id="priority-1"
             name="priority"
             type="radio"
             onChange={handleChange}
-            required={true}
             value={1}
             checked={formData.priority == 1}
           />
@@ -92,7 +126,6 @@ const TicketForm = () => {
             name="priority"
             type="radio"
             onChange={handleChange}
-            required={true}
             value={2}
             checked={formData.priority == 2}
           />
@@ -102,7 +135,6 @@ const TicketForm = () => {
             name="priority"
             type="radio"
             onChange={handleChange}
-            required={true}
             value={3}
             checked={formData.priority == 3}
           />
@@ -112,7 +144,6 @@ const TicketForm = () => {
             name="priority"
             type="radio"
             onChange={handleChange}
-            required={true}
             value={4}
             checked={formData.priority == 4}
           />
@@ -122,31 +153,35 @@ const TicketForm = () => {
             name="priority"
             type="radio"
             onChange={handleChange}
-            required={true}
             value={5}
             checked={formData.priority == 5}
           />
           <label>5</label>
         </div>
-        <label>progress</label>
+        <label>Progress</label>
         <input
+          type="range"
           id="progress"
           name="progress"
-          type="range"
-          onChange={handleChange}
-          required={true}
           value={formData.progress}
+          min="0"
+          max="100"
+          onChange={handleChange}
         />
-        <label>status</label>
-        <select name="status" onChange={handleChange} value={formData.status}>
-          <option value="Not started">Not started</option>
-          <option value="Have started">Have started</option>
-          <option value="Done">Done</option>
+        <label>Status</label>
+        <select name="status" value={formData.status} onChange={handleChange}>
+          <option value="not started">Not Started</option>
+          <option value="started">Started</option>
+          <option value="done">Done</option>
         </select>
-        <input type="submit" className="btn" value="Create Ticket" />
+        <input
+          type="submit"
+          className="btn"
+          value={EDITMODE ? "Update Ticket" : "Create Ticket"}
+        />
       </form>
     </div>
   );
 };
 
-export default TicketForm;
+export default EditTicketForm;
